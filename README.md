@@ -1,6 +1,6 @@
 # Neural Network Visualizer
 
-**Live demo → [YOUR_USERNAME.github.io/nn-visualizer](https://kickereb.github.io/nn-visualizer)**
+**Live demo → [kickereb.github.io/nn-visualizer](https://kickereb.github.io/nn-visualizer)**
 
 Two interactive experiments that let you build, configure, and train neural networks in real time — directly in the browser, with no libraries, no build step, and no server.
 
