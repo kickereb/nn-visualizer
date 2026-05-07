@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neural Network Visualizer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3350;
+      --accent: #534AB7;
+      --accent2: #0F6E56;
+      --orange: #D85A30;
+      --text: #e8eaf0;
+      --muted: #8891b2;
+      --radius: 12px;
+      --font: 'Inter', system-ui, -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    /* ── NAV ── */
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      height: 56px;
+      position: sticky;
+      top: 0;
+      background: rgba(15,17,23,0.85);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+    }
+    .nav-logo {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .nav-logo span.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); display: inline-block; }
+    nav a.nav-link { color: var(--muted); text-decoration: none; font-size: 14px; transition: color .15s; }
+    nav a.nav-link:hover { color: var(--text); }
+    .nav-links { display: flex; gap: 1.5rem; margin-left: auto; }
+
+    /* ── HERO ── */
+    .hero {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 5rem 2rem 3rem;
+      text-align: center;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(83,74,183,0.15);
+      border: 1px solid rgba(83,74,183,0.4);
+      color: #a49ef5;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 4px 12px;
+      border-radius: 999px;
+      margin-bottom: 1.5rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.25rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 1.25rem;
+      background: linear-gradient(135deg, #e8eaf0 30%, #a49ef5);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      color: var(--muted);
+      font-size: 17px;
+      max-width: 600px;
+      margin: 0 auto 2.5rem;
+      line-height: 1.75;
+    }
+    .hero-tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 3rem; }
+    .tag {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px;
+      font-family: var(--mono);
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+
+    /* ── CARDS ── */
+    .cards {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 2rem 5rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+      gap: 1.5rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: border-color .2s, transform .2s;
+      display: flex;
+      flex-direction: column;
+    }
+    .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .card-preview {
+      height: 180px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 56px;
+      position: relative;
+      overflow: hidden;
+    }
+    .card-preview.blue { background: linear-gradient(135deg, #1a1d27 0%, #1e1a3d 100%); }
+    .card-preview.green { background: linear-gradient(135deg, #1a1d27 0%, #0d2820 100%); }
+    .card-preview .preview-label {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--muted);
+      background: rgba(0,0,0,0.4);
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+    .card-body { padding: 1.5rem; flex: 1; display: flex; flex-direction: column; }
+    .card-number {
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--accent);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .card h2 { font-size: 19px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 8px; }
+    .card p { color: var(--muted); font-size: 14px; line-height: 1.65; flex: 1; margin-bottom: 1.25rem; }
+    .card-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 1.25rem; }
+    .chip {
+      font-size: 11px;
+      font-family: var(--mono);
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .chip.accent { border-color: rgba(83,74,183,0.5); color: #a49ef5; background: rgba(83,74,183,0.1); }
+    .chip.green { border-color: rgba(15,110,86,0.5); color: #4ecba3; background: rgba(15,110,86,0.1); }
+    .chip.orange { border-color: rgba(216,90,48,0.5); color: #f0906a; background: rgba(216,90,48,0.1); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all .15s;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { background: #6660d4; }
+    .btn-primary.green { background: var(--accent2); }
+    .btn-primary.green:hover { background: #13916e; }
+
+    /* ── CONCEPTS ── */
+    .concepts {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 2rem 5rem;
+    }
+    .section-label {
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+      border-left: 3px solid var(--accent);
+      padding-left: 12px;
+    }
+    .concept-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+    .concept-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.1rem 1.25rem;
+    }
+    .concept-item .ci-label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+    .concept-item .ci-value { font-size: 14px; font-weight: 500; font-family: var(--mono); }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    footer a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+
+    /* ── SVG previews ── */
+    .preview-svg { width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-logo"><span class="dot"></span> NN Visualizer</a>
+  <div class="nav-links">
+    <a href="experiment-2d.html" class="nav-link">2D Regression</a>
+    <a href="experiment-3d.html" class="nav-link">3D Surface</a>
+    <a href="https://github.com/YOUR_USERNAME/nn-visualizer" class="nav-link" target="_blank">GitHub ↗</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-badge">Interactive · In-browser training · No dependencies</div>
+  <h1>Neural Networks,<br/>Made Visible</h1>
+  <p>Two interactive experiments that let you build, configure, and train neural networks in real time — and actually watch what they're learning.</p>
+  <div class="hero-tags">
+    <span class="tag">gradient-descent</span>
+    <span class="tag">backpropagation</span>
+    <span class="tag">tanh activation</span>
+    <span class="tag">MSE loss</span>
+    <span class="tag">universal approximation</span>
+    <span class="tag">regression</span>
+    <span class="tag">3D surface fitting</span>
+  </div>
+</section>
+
+<div class="cards">
+
+  <div class="card">
+    <div class="card-preview blue">
+      <svg viewBox="0 0 320 180" class="preview-svg" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g1" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#534AB7" stop-opacity="0"/>
+            <stop offset="0.5" stop-color="#534AB7" stop-opacity="1"/>
+            <stop offset="1" stop-color="#a49ef5" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <!-- data points -->
+        <circle cx="30" cy="120" r="3" fill="#534AB7" opacity="0.8"/>
+        <circle cx="52" cy="95" r="3" fill="#534AB7" opacity="0.8"/>
+        <circle cx="78" cy="58" r="3" fill="#534AB7" opacity="0.8"/>
+        <circle cx="100" cy="50" r="3" fill="#534AB7" opacity="0.8"/>
+        <circle cx="130" cy="70" r="3" fill="#534AB7" opacity="0.8"/>
+        <circle cx="155" cy="100" r="3" fill="#534AB7" opacity="0.8"/>
+        <circle cx="178" cy="118" r="3" fill="#534AB7" opacity="0.8"/>
+        <circle cx="200" cy="100" r="3" fill="#534AB7" opacity="0.8"/>
+        <circle cx="225" cy="68" r="3" fill="#534AB7" opacity="0.8"/>
+        <circle cx="250" cy="48" r="3" fill="#534AB7" opacity="0.8"/>
+        <circle cx="275" cy="62" r="3" fill="#534AB7" opacity="0.8"/>
+        <circle cx="295" cy="88" r="3" fill="#534AB7" opacity="0.8"/>
+        <!-- fitted curve -->
+        <path d="M20,128 C40,100 60,52 90,46 C120,40 140,72 160,105 C180,135 200,108 225,62 C245,30 270,44 300,80"
+              fill="none" stroke="#0F6E56" stroke-width="2.5" stroke-linecap="round"/>
+        <!-- residuals -->
+        <line x1="78" y1="58" x2="78" y2="50" stroke="#D85A30" stroke-width="1.2" opacity="0.7"/>
+        <line x1="155" y1="100" x2="155" y2="107" stroke="#D85A30" stroke-width="1.2" opacity="0.7"/>
+        <line x1="225" y1="68" x2="225" y2="62" stroke="#D85A30" stroke-width="1.2" opacity="0.7"/>
+        <line x1="52" y1="95" x2="52" y2="88" stroke="#D85A30" stroke-width="1.2" opacity="0.7"/>
+        <line x1="275" y1="62" x2="275" y2="57" stroke="#D85A30" stroke-width="1.2" opacity="0.7"/>
+        <!-- x axis -->
+        <line x1="20" y1="150" x2="300" y2="150" stroke="#2e3350" stroke-width="1"/>
+        <text x="155" y="168" text-anchor="middle" fill="#8891b2" font-size="10" font-family="monospace">input x</text>
+      </svg>
+      <div class="preview-label">1 input → hidden layers → 1 output</div>
+    </div>
+    <div class="card-body">
+      <div class="card-number">Experiment 01</div>
+      <h2>2D Regression</h2>
+      <p>Configure hidden layers and neuron counts, drag sliders to tune every weight and bias manually, or hit Train to watch gradient descent fit a noisy sine wave in real time. Residual lines visualize MSE live.</p>
+      <div class="card-meta">
+        <span class="chip accent">tanh hidden</span>
+        <span class="chip">linear output</span>
+        <span class="chip orange">MSE loss</span>
+        <span class="chip">full-batch GD</span>
+        <span class="chip green">live training</span>
+      </div>
+      <a href="experiment-2d.html" class="btn btn-primary">Open Experiment →</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-preview green">
+      <svg viewBox="0 0 320 180" class="preview-svg" xmlns="http://www.w3.org/2000/svg">
+        <!-- simple isometric grid suggestion -->
+        <g opacity="0.25" stroke="#4ecba3" stroke-width="0.8" fill="none">
+          <path d="M160,20 L280,80 L160,140 L40,80 Z"/>
+          <path d="M160,50 L250,90 L160,130 L70,90 Z"/>
+          <path d="M100,55 L100,110"/>
+          <path d="M130,40 L130,120"/>
+          <path d="M160,30 L160,140"/>
+          <path d="M190,40 L190,120"/>
+          <path d="M220,55 L220,110"/>
+          <path d="M70,90 L250,90"/>
+          <path d="M80,70 L240,70"/>
+          <path d="M80,110 L240,110"/>
+        </g>
+        <!-- surface highlight -->
+        <path d="M100,90 C120,50 145,35 160,40 C175,45 200,55 220,90 C200,120 175,130 160,128 C145,126 120,125 100,90Z"
+              fill="rgba(15,110,86,0.35)" stroke="#0F6E56" stroke-width="1.5"/>
+        <!-- scatter dots -->
+        <circle cx="115" cy="75" r="3.5" fill="#534AB7" opacity="0.9"/>
+        <circle cx="148" cy="55" r="3.5" fill="#534AB7" opacity="0.9"/>
+        <circle cx="180" cy="65" r="3.5" fill="#534AB7" opacity="0.9"/>
+        <circle cx="200" cy="95" r="3.5" fill="#534AB7" opacity="0.9"/>
+        <circle cx="135" cy="108" r="3.5" fill="#534AB7" opacity="0.9"/>
+        <!-- residual drop lines -->
+        <line x1="148" y1="55" x2="148" y2="45" stroke="#D85A30" stroke-width="1.5" opacity="0.8"/>
+        <line x1="115" y1="75" x2="115" y2="82" stroke="#D85A30" stroke-width="1.5" opacity="0.8"/>
+        <line x1="200" y1="95" x2="200" y2="88" stroke="#D85A30" stroke-width="1.5" opacity="0.8"/>
+        <text x="155" y="168" text-anchor="middle" fill="#8891b2" font-size="10" font-family="monospace">x₁ × x₂ → y surface</text>
+      </svg>
+      <div class="preview-label">2 inputs → hidden layers → 1 output</div>
+    </div>
+    <div class="card-body">
+      <div class="card-number">Experiment 02</div>
+      <h2>3D Surface Fitting</h2>
+      <p>The network now takes two inputs and predicts a surface over the (x₁, x₂) plane. Rotate the interactive 3D plot to see residuals from every angle. Train to watch a flat surface morph into a rippled sin·cos target.</p>
+      <div class="card-meta">
+        <span class="chip accent">tanh hidden</span>
+        <span class="chip">linear output</span>
+        <span class="chip orange">MSE loss</span>
+        <span class="chip">full-batch GD</span>
+        <span class="chip green">rotatable 3D</span>
+      </div>
+      <a href="experiment-3d.html" class="btn btn-primary green">Open Experiment →</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="concepts">
+  <div class="section-label">Architecture reference</div>
+  <div class="concept-grid">
+    <div class="concept-item">
+      <div class="ci-label">Hidden activation</div>
+      <div class="ci-value" style="color:#a49ef5;">tanh(z)</div>
+    </div>
+    <div class="concept-item">
+      <div class="ci-label">Output activation</div>
+      <div class="ci-value" style="color:#8891b2;">linear (none)</div>
+    </div>
+    <div class="concept-item">
+      <div class="ci-label">Loss function</div>
+      <div class="ci-value" style="color:#f0906a;">MSE</div>
+    </div>
+    <div class="concept-item">
+      <div class="ci-label">Optimizer</div>
+      <div class="ci-value" style="color:#4ecba3;">full-batch GD</div>
+    </div>
+    <div class="concept-item">
+      <div class="ci-label">Weight init</div>
+      <div class="ci-value">Xavier-ish</div>
+    </div>
+    <div class="concept-item">
+      <div class="ci-label">Max hidden layers</div>
+      <div class="ci-value">4</div>
+    </div>
+    <div class="concept-item">
+      <div class="ci-label">Max neurons/layer</div>
+      <div class="ci-value">10</div>
+    </div>
+    <div class="concept-item">
+      <div class="ci-label">Training target</div>
+      <div class="ci-value">sin(x)·cos(x₂)</div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Built with vanilla JS · No frameworks · No build step ·
+  <a href="https://github.com/YOUR_USERNAME/nn-visualizer" target="_blank">View source on GitHub</a>
+</footer>
+
+</body>
+</html>
